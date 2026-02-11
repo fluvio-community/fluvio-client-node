@@ -84,10 +84,11 @@ jobs:
         with:
           cluster-name: "fluvio"
       - name: Install Fluvio Local Cluster
-        uses: infinyon/fluvio@master
+        uses: infinyon/fluvio@07e42e5fb300df4dbc719170cdb5391b522dee69 # use until #4651 gets merged 
         with:
           cluster-type: local
-          version: "latest"
+          version: "stable"
+          fvm_version: "dev"
       - name: Check Fluvio Installation
         run: |
           fluvio version
