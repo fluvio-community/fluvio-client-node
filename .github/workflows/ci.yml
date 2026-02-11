@@ -84,7 +84,7 @@ jobs:
         with:
           cluster-name: "fluvio"
       - name: Install Fluvio Local Cluster
-        uses: infinyon/fluvio@07e42e5fb300df4dbc719170cdb5391b522dee69 # use until #4651 gets merged 
+        uses: infinyon/fluvio@a4e8144d3d1d9c6faad4b9cfdcb8c8111ef248d3 # use until #4651 gets merged 
         with:
           cluster-type: local
           version: "stable"
@@ -151,6 +151,29 @@ jobs:
     name: Done
     needs: [check_fmt, check_security, smoke_test, macos_ci]
     runs-on: ubuntu-latest
+    if: always()
     steps:
-      - name: Done
-        run: echo Done
+      - name: Dump needs context
+        env:
+          CONTEXT: ${{ toJson(needs) }}
+        run: |
+          echo -e "\033[33;1;4mDump context\033[0m"
+          echo -e "$CONTEXT\n"
+      - name: Report failure on cancellation
+        if: ${{ contains(needs.*.result, 'cancelled') || cancelled() }}
+        run: exit 1
+      - name: Failing test and build
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: exit 1
+      - name: Don't allow skipped
+        if: ${{ contains(needs.*.result, 'skipped')  && github.event_name == 'merge_group' }}
+        run: exit 1
+      - name: Successful test and build
+        if: ${{ !(contains(needs.*.result, 'failure')) }}
+        run: exit 0
+      - name: Repo dispatch ci-success
+        if: github.event_name == 'merge_group'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          event-type: ci-success
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
