@@ -87,7 +87,7 @@ jobs:
         uses: infinyon/fluvio@master
         with:
           cluster-type: local
-          version: "dev"
+          version: "latest"
       - name: Check Fluvio Installation
         run: |
           fluvio version
