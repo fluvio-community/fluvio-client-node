@@ -171,4 +171,3 @@ jobs:
       - name: Successful test and build
         if: ${{ !(contains(needs.*.result, 'failure')) }}
         run: exit 0
-      - name: Repo dispatch ci-success
