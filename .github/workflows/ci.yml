@@ -19,7 +19,7 @@ jobs:
         os: [ubuntu-latest]
         node: ["18"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1
         with:
@@ -48,7 +48,7 @@ jobs:
         rust: [stable]
         node: ["16", "18", "20"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install ${{ matrix.rust }}
         uses: actions-rs/toolchain@v1
         with:
@@ -84,10 +84,11 @@ jobs:
         with:
           cluster-name: "fluvio"
       - name: Install Fluvio Local Cluster
-        uses: infinyon/fluvio@master
+        uses: infinyon/fluvio@a4e8144d3d1d9c6faad4b9cfdcb8c8111ef248d3 # use until #4651 gets merged 
         with:
           cluster-type: local
           version: "stable"
+          fvm_version: "dev"
       - name: Check Fluvio Installation
         run: |
           fluvio version
@@ -99,7 +100,7 @@ jobs:
       - name: Create Topic
         run: |
           fluvio topic create -p 1 -r 1 my-topic
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install ${{ matrix.rust }}
         uses: actions-rs/toolchain@v1
         with:
@@ -133,7 +134,7 @@ jobs:
         rust: [stable]
         node: ["16", "18"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install ${{ matrix.rust }}
         uses: actions-rs/toolchain@v1
         with:
@@ -150,6 +151,23 @@ jobs:
     name: Done
     needs: [check_fmt, check_security, smoke_test, macos_ci]
     runs-on: ubuntu-latest
+    if: always()
     steps:
-      - name: Done
-        run: echo Done
+      - name: Dump needs context
+        env:
+          CONTEXT: ${{ toJson(needs) }}
+        run: |
+          echo -e "\033[33;1;4mDump context\033[0m"
+          echo -e "$CONTEXT\n"
+      - name: Report failure on cancellation
+        if: ${{ contains(needs.*.result, 'cancelled') || cancelled() }}
+        run: exit 1
+      - name: Failing test and build
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: exit 1
+      - name: Don't allow skipped
+        if: ${{ contains(needs.*.result, 'skipped')  && github.event_name == 'merge_group' }}
+        run: exit 1
+      - name: Successful test and build
+        if: ${{ !(contains(needs.*.result, 'failure')) }}
+        run: exit 0
